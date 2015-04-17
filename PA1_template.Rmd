@@ -1,0 +1,142 @@
+---
+title: "Peer Assessment 1"
+author: "Di Yang"
+date: "April 17, 2015"
+output: html_document
+---
+
+### Loading and preprocessing the data
+Load the data
+```{r}
+act <- read.csv("activity.csv")
+```
+
+
+Process/transform the data for analysis
+```{r}
+act$date <- as.Date(act$date, format="%Y-%m-%d")
+```
+
+
+
+### What is mean total number of steps taken per day?
+Aggregate steps and date, then sum the rows
+```{r}
+spd <- aggregate(steps ~ date, data = act, FUN = sum)
+```
+
+
+Create histogram showing frequency of steps
+```{r}
+hist(spd$steps,xlab="Steps",main="Total number of steps")
+```
+
+
+Calculate mean and median total number of steps taken per day
+```{r}
+summary(spd$steps)
+```
+The median is 10760 and the mean is 10770.
+
+
+
+### What is the average daily activity pattern?
+Aggregate steps and intervals, sum the rows
+```{r}
+inte <- aggregate(steps ~ interval, data = act, FUN = sum)
+```
+
+
+Create histogram showing frequency of steps
+```{r}
+hist(inte$steps,xlab="Steps",main="Number of steps (by interval)")
+```
+
+
+Aggregate steps and intervals, then find mean of rows
+```{r}
+avin <- aggregate(steps ~ interval, data = act, FUN = mean)
+```
+
+
+Create a time-series plot of intervals
+```{r]}
+plot(avin,xlab="Interval",main="Mean number of steps (by interval)",type="l")
+```
+
+
+Find interval with maximum step value (mean) 
+```{r}
+avin[avin$steps==max(avin$steps),]
+```
+The 835th interval, on average across all the days in the dataset, contains the maximum number of steps.
+
+
+
+### Imputing missing values
+Calculate total number of missing values
+```{r}
+sum(!complete.cases(act))
+```
+There are 2,304 rows of missing values.
+
+
+
+Replace NA values with mean value for that interval
+```{r}
+all <- transform(act, steps=ifelse(is.na(act$steps), 
+  avin$steps[match(act$interval, avin$interval)], act$steps))
+```
+
+
+Aggregate steps and date, then sum the rows
+```{r}
+aspd <- aggregate(steps ~ date, data = all, FUN = sum)
+```
+
+
+Create histogram of total steps per day with complete data
+```{r}
+hist(aspd$steps,xlab="Steps",main="Total Number of Steps (complete)")
+```
+
+
+Calculate the new mean and median total number of steps taken per day (for the complete data set)
+```{r}
+summary(aspd$steps)
+```
+The median is 10770 and the mean is 10770. 
+
+For easy reference, here the old mean and median total number of steps taken per day (for the old data set)
+```{r}
+summary(spd$steps)
+```
+The new median is 10 less than old median, whereas mean stayed the same for both old and new. Overall, the impact of imputing missing data is small. Min, Mean, and Max values stay the same while 1st Qu. decreases by about 1,000; Median decreases by 10; and 3rd Qu. increases by about 300.
+
+
+
+### Are there differences in activity patterns between weekdays and weekends?
+Create vector titled weekdays
+```{r}
+dayvalues <- c("Monday", "Tuesday", "Wednesday", "Thursday", "Friday")
+```
+
+
+Create a new column 'daytype' to specify if the day is a weekday or weekend. If the all$date value is a weekday, then the value for 'daytype' is 'Weekday'. Else, the value for 'daytype' is 'Weekend'.
+```{r}
+all$daytype = as.factor(ifelse(is.element(weekdays(all$date),dayvalues), "Weekday", "Weekend"))
+```
+
+
+Aggregate steps and interval by datetype, average the rows
+```{r}
+allw <- aggregate(steps ~ interval + daytype, all, mean)
+```
+
+
+Create a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
+```{r}
+library(lattice)
+xyplot(allw$steps ~ allw$interval|allw$daytype, main="Average steps comparison of weekday and weekend",
+  xlab="Interval", ylab="Steps",layout=c(1,2), type="l")
+```
